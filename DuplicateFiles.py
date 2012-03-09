@@ -37,14 +37,12 @@ class Scanner(threading.Thread):
                 with open( filepath ) as openfile:
                     filehash = md5( openfile.read() ).hexdigest()
                 if filehash not in duplicates:
-                    duplicates.setdefault(filehash, []).append (filepath +' hash:'+ filehash)
+                    duplicates.setdefault(filehash, []).append (filepath)
                 else:
-                    duplicates[filehash].append(filepath +' hash:'+ filehash) #hash only here for debugging
+                    duplicates[filehash].append(filepath)
             for duplicate in [ duplicate for duplicate in  duplicates.values() if len(duplicate)>1 ]:
                 self._queue.put(duplicate)
         self._finished_scan[0] = 1
-        print "Finnished scanning!"
-
 
 class Updater(threading.Thread):
     
@@ -65,7 +63,8 @@ class Updater(threading.Thread):
                 #if queue is empty and scan is finished then stop this thread
                 if self._finished_scan[0] == 1:
                     self._time_duration = time.time() - self._time_duration
-                    print  'Duration (in seconds): ' + repr(self._time_duration)
+                    print  'Finished in ' + repr(self._time_duration) + ' seconds!'
+		    self._updateFunc()
                     break
                 else:
                     continue

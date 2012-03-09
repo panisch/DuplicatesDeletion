@@ -4,22 +4,24 @@ from tkFileDialog import askdirectory
 from os import remove
 import time
 import Queue
+import os.path
 
 
 class  Application(Frame):
     def  __init__(self,  master=None):
         Frame.__init__(self,  master)
         self.grid(sticky=N+S+E+W)
+	self._duplicates=[]
         self.createWidgets()
         self.setStartState()
         self._time_duration = time;
         
     def setStartState(self):
-        self._duplicates=[]
+        del self._duplicates[:]
         self._duplicate_index =0
-        self._finished_scan = [0]#needs to be a list instead of Boolean, cause it is used as a reference in the threads
+        self._finished_scan = [0] #needs to be a list instead of Boolean, cause it is used as a reference in the threads
+	self.update_output()
        
-
     def  createWidgets(self):
         #Stretching
         top=self.winfo_toplevel()
@@ -35,7 +37,7 @@ class  Application(Frame):
         self._frame.pack_propagate(0)
         self._frame.grid(row=7,column=0, columnspan=3)
 
-        #Labels
+        #labels
         self.dir_Label = LabelFrame ( self, text= 'Select directory path:')
         self.dir_Label.grid(row=0,column=0, columnspan=2, padx = 5, sticky=N+W+E)
 
@@ -50,16 +52,16 @@ class  Application(Frame):
         self.result_total_label.grid(row=2,column=0, columnspan=3, padx=5)
 
         self._result_current_label = StringVar()
-        self._result_current_label.set('Scan first!')
+        self._result_current_label.set('No results yet!')
         self.result_current_label = Label ( self._frame, anchor=CENTER, textvariable=self._result_current_label)
         self.result_current_label.grid(row=0,column=1,  padx=5)
 
 
-        #Listbox
+        #listbox
         self.scan_output = Listbox(self, selectmode=MULTIPLE, width=100)
         self.scan_output.grid(row=3,column=0, columnspan=3, padx = 5, pady=5, sticky=N+E+S+W)
 
-        #Buttons
+        #buttons
         self.browse  =  Button  (  self,  text="Browse directory", command=self.open_browse_dialog  )
         self.browse.grid(row=0, column=2, pady=10, padx = 5, sticky=E+W)
 
@@ -77,11 +79,15 @@ class  Application(Frame):
 
 
     def start_scan(self):
-        self.setStartState()
-        _path = self.path.get()
+ 	if os.path.exists(self.path.get()):
+	        _path = self.path.get()
+	else:
+		self._result_total_var.set('Choose valid path!')
+		return
+        self._result_total_var.set('Scanning directories...please wait.')
+	self.setStartState()
         _queue = Queue.Queue()
         self._time_duration = time.time()
-        self.update_output()
 
         scanner = Scanner(_path, _queue, self._finished_scan)
         scanner.start()
@@ -90,7 +96,7 @@ class  Application(Frame):
         updater.start()
 
     def delete_file(self):
-        selection = self.scan_output.curselection()     #get a tuple of selected paths
+        selection = self.scan_output.curselection()
         selection_array=[]
         for item in selection:
             selection_array.append(int(item))
@@ -102,10 +108,12 @@ class  Application(Frame):
             del self._duplicates[self._duplicate_index][select]
         self.update_output()
 
-
     def update_output(self):
         self.scan_output.delete(0,self.scan_output.size())
-        if len(self._duplicates)==0:
+        if len(self._duplicates)==0: 
+	    if self._finished_scan[0]==1:
+	        self._result_total_var.set("Finished scanning!".format(len(self._duplicates)))
+	        self._result_current_label.set("No duplicates found!".format(self._duplicate_index+1,len(self._duplicates)))
             return
         if self._duplicate_index < 0:
             self._duplicate_index = 0
@@ -125,10 +133,11 @@ class  Application(Frame):
         self.update_output()
 
     def open_browse_dialog(self):
+	self.setStartState()
         dirname = askdirectory(initialdir="/")
-        self.path.set(dirname)
-        self._result_total_var.set('No results yet!')
-        self._result_current_label.set('Scan first!')
+	self.path.set(dirname)
+        self._result_total_var.set('Scan directory for duplicates!')
+        self._result_current_label.set('No results yet!')
 
 app  =  Application()
 app.master.title("Delete Duplicates")
