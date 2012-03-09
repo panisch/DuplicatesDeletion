@@ -50,7 +50,7 @@ class  Application(Frame):
         self.result_total_label.grid(row=2,column=0, columnspan=3, padx=5)
 
         self._result_current_label = StringVar()
-        self._result_current_label.set('Running...')
+        self._result_current_label.set('Scan first!')
         self.result_current_label = Label ( self._frame, anchor=CENTER, textvariable=self._result_current_label)
         self.result_current_label.grid(row=0,column=1,  padx=5)
 
